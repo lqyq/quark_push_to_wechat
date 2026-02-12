@@ -70,20 +70,25 @@ def read_excel_and_classify(file_path, col_type, col_name, col_link):
     return type_res_dict
 
 def format_single_type_message(res_type, res_list, max_num=5):
-    """格式化单个类别的消息"""
+    """格式化单个类别的消息，改为随机抽取max_num条"""
     if not res_list:
         return f"⚠️ 【{res_type}】无有效资源数据"
 
-    sample_count = min(max_num, len(res_list))
-    random_res = random.sample(res_list, sample_count)
-    res_str = "\n".join([f"  {i + 1}. {name}：{link}" for i, (name, link) in enumerate(random_res)])
+    # 核心修改：随机抽取max_num条（不足则取全部）
+    sample_count = min(max_num, len(res_list))  # 避免资源数不足时报错
+    random_res = random.sample(res_list, sample_count)  # 随机抽样，不重复
 
+    # 格式化随机抽取的内容
+    res_str = "\n".join([f"📑{i + 1}. {name}：\n{link}" for i, (name, link) in enumerate(random_res)])
+
+    # 构造单类别消息（更新统计文案，体现随机）
     msg_parts = [
         "📚 共享资源推送\n",
-        f"【{res_type}】（共{len(res_list)}条，随机抽取{sample_count}条）：\n{res_str}\n",
+        f"共{len(res_list)}条，随机抽取{sample_count}条）：\n{res_str}\n",
         "💡 需要其他资源可联系我，更多资料可在该网站搜索：https://dcn8qexvg13r.feishu.cn/wiki/OAS1wpySSiedCDkgnjycCza8nFf?table=tblgsMxc3clOlIc5&view=vewQ1AKJ0D"
     ]
-    return "\n".join(msg_parts)[:4000]
+    final_msg = "\n".join(msg_parts)
+    return final_msg[:4000]  # 预留空间，避免超企业微信字符限制
 
 def send_to_wechat_bot(webhook, content, res_type):
     """推送企业微信"""
