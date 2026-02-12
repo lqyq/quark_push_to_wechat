@@ -1,0 +1,46 @@
+name: 资源推送企业微信
+on:
+  # 可选1：定时触发（Cron表达式，UTC时间，需转换为北京时间+8小时）
+  schedule:
+    - cron: '0 12 * * *'  # 北京时间 20:00 运行（UTC 12:00）
+  # 可选2：手动触发（在GitHub页面点击运行）
+  workflow_dispatch:
+  # 可选3：代码推送/PR触发（测试用）
+  # push:
+  #   branches: [ main ]
+
+jobs:
+  push-resource:
+    runs-on: ubuntu-latest  # 运行环境：Ubuntu最新版
+    steps:
+      # 步骤1：拉取仓库代码
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      # 步骤2：设置Python环境
+      - name: 设置Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'  # 推荐3.8+，兼容pandas
+
+      # 步骤3：安装依赖
+      - name: 安装依赖包
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # 步骤4：运行推送脚本
+      - name: 执行资源推送
+        env:
+          # 从GitHub Secrets读取敏感信息
+          WECHAT_WEBHOOK: ${{ secrets.WECHAT_WEBHOOK }}
+          # 非敏感配置可直接写（或也存入Secrets）
+          EXCEL_FILE_PATH: "共享无偿资料库.xlsx"
+          TARGET_COL_TYPE: "资源类型"
+          TARGET_COL_NAME: "资源名称"
+          TARGET_COL_LINK: "资源链接"
+          SEND_LINKS_PER_TYPE: 5
+          SEND_INTERVAL: 2
+          #RANDOM_SEED: 42
+        run: python push_resource.py
+
