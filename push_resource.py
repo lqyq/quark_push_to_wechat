@@ -15,7 +15,7 @@ TARGET_COL_NAME = os.getenv("TARGET_COL_NAME", "资源名称")
 TARGET_COL_LINK = os.getenv("TARGET_COL_LINK", "资源链接")
 SEND_LINKS_PER_TYPE = int(os.getenv("SEND_LINKS_PER_TYPE", 5))
 SEND_INTERVAL = int(os.getenv("SEND_INTERVAL", 2))
-RANDOM_SEED = os.getenv("RANDOM_SEED", 42)  # 可选
+# RANDOM_SEED = os.getenv("RANDOM_SEED", 42)  # 可选
 
 # 可选：设置随机种子
 if RANDOM_SEED and RANDOM_SEED != "None":
