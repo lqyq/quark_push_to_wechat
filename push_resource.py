@@ -21,6 +21,7 @@ RANDOM_SEED = os.getenv("RANDOM_SEED", 42)  # 可选
 if RANDOM_SEED and RANDOM_SEED != "None":
     random.seed(int(RANDOM_SEED))
 
+
 def read_excel_and_classify(file_path, col_type, col_name, col_link):
     """改用pandas读取Excel按资源类型分类"""
     file_path = Path(file_path)
@@ -56,9 +57,9 @@ def read_excel_and_classify(file_path, col_type, col_name, col_link):
 
     # 过滤有效数据
     filter_condition = (
-        df["type"].notna() &
-        df["link"].notna() &
-        df["link"].str.startswith(("http://", "https://"), na=False)
+            df["type"].notna() &
+            df["link"].notna() &
+            df["link"].str.startswith(("http://", "https://"), na=False)
     )
     df_clean = df[filter_condition].copy()
 
@@ -68,6 +69,7 @@ def read_excel_and_classify(file_path, col_type, col_name, col_link):
         type_res_dict[row["type"]].append((row["name"], row["link"]))
 
     return type_res_dict
+
 
 def format_single_type_message(res_type, res_list, max_num=5):
     """格式化单个类别的消息，改为随机抽取max_num条"""
@@ -79,16 +81,16 @@ def format_single_type_message(res_type, res_list, max_num=5):
     random_res = random.sample(res_list, sample_count)  # 随机抽样，不重复
 
     # 格式化随机抽取的内容
-    res_str = "\n".join([f"📑{i + 1}. {name}：\n{link}" for i, (name, link) in enumerate(random_res)])
+    res_str = "\n".join([f"📚{i + 1}. {name}：\n{link}" for i, (name, link) in enumerate(random_res)])
 
-    # 构造单类别消息（更新统计文案，体现随机）
+    # 构造单类别消息（删除了原第一行"📚 共享资源推送"）
     msg_parts = [
-        "📚 共享资源推送\n",
-        f"共{len(res_list)}条，随机抽取{sample_count}条）：\n{res_str}\n",
+        f"{res_type}共{len(res_list)}条，随机抽取{sample_count}条）：\n{res_str}\n",
         "💡 需要其他资源可联系我，更多资料可在该网站搜索：https://dcn8qexvg13r.feishu.cn/wiki/OAS1wpySSiedCDkgnjycCza8nFf?table=tblgsMxc3clOlIc5&view=vewQ1AKJ0D"
     ]
     final_msg = "\n".join(msg_parts)
     return final_msg[:4000]  # 预留空间，避免超企业微信字符限制
+
 
 def send_to_wechat_bot(webhook, content, res_type):
     """推送企业微信"""
@@ -122,6 +124,7 @@ def send_to_wechat_bot(webhook, content, res_type):
     except Exception as e:
         raise Exception(f"推送失败：{str(e)}")
 
+
 if __name__ == "__main__":
     """主入口"""
     try:
@@ -145,6 +148,11 @@ if __name__ == "__main__":
 
         print(f"📌 开始分{total_types}次推送（间隔{SEND_INTERVAL}秒/次）...")
         for idx, (res_type, res_list) in enumerate(type_res.items(), start=1):
+            # 核心修改：资源类型下的资源数量少于5个则跳过推送
+            if len(res_list) < 5:
+                print(f"⏭️ 【{res_type}】资源数量不足5个（当前{len(res_list)}个），跳过推送")
+                continue
+
             print(f"\n🔹 推送第{idx}/{total_types}类：{res_type}")
             msg_content = format_single_type_message(res_type, res_list, SEND_LINKS_PER_TYPE)
             print(f"📝 待推送内容：\n{msg_content}")
@@ -158,7 +166,7 @@ if __name__ == "__main__":
                 print(f"⏳ 等待{SEND_INTERVAL}秒...")
                 time.sleep(SEND_INTERVAL)
 
-        print("\n🎉 所有类别推送完成！")
+        print("\n🎉 所有符合条件的类别推送完成！")
 
     except Exception as e:
         print(f"❌ 执行失败：{str(e)}")
