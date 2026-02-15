@@ -41,6 +41,9 @@ jobs:
           TARGET_COL_LINK: "资源链接"
           SEND_LINKS_PER_TYPE: 5
           SEND_INTERVAL: 2
+          NO_fenlei_MODE: "true" 
+          RANDOM_COUNT: 10 
+
           #RANDOM_SEED: 42
         run: python push_resource.py
 
