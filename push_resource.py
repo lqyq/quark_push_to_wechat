@@ -15,13 +15,12 @@ TARGET_COL_NAME = os.getenv("TARGET_COL_NAME", "资源名称")
 TARGET_COL_LINK = os.getenv("TARGET_COL_LINK", "资源链接")
 SEND_LINKS_PER_TYPE = int(os.getenv("SEND_LINKS_PER_TYPE", 5))
 SEND_INTERVAL = int(os.getenv("SEND_INTERVAL", 2))
-#RANDOM_SEED = os.getenv("RANDOM_SEED", 42)  # 可选
-NO_fenlei_MODE = os.getenv("NO_fenlei_MODE", "false").lower() == "true"  # 是否启用随机模式
+NO_fenlei_MODE = os.getenv("NO_fenlei_MODE", "true").lower() == "true"  # 启用随机模式
 RANDOM_COUNT = int(os.getenv("RANDOM_COUNT", 10))  # 随机选取的资源数量
 
-# 可选：设置随机种子
-#if RANDOM_SEED and RANDOM_SEED != "None":
-#    random.seed(int(RANDOM_SEED))
+# 指定要优先推送的标签
+SPECIFIED_TAGS = ["学科资料", "年级学段", "教材版本", "考试试卷", "学习教辅"]
+
 
 
 def read_excel_and_classify(file_path, col_type, col_name, col_link):
@@ -73,8 +72,8 @@ def read_excel_and_classify(file_path, col_type, col_name, col_link):
     return type_res_dict
 
 
-def get_random_resources(file_path, col_type, col_name, col_link, count):
-    """直接从Excel中随机选取指定数量的资源"""
+def get_random_resources_by_tags(file_path, col_type, col_name, col_link, count, specified_tags=None, exclude_tags=False):
+    """根据标签筛选后随机选取指定数量的资源"""
     file_path = Path(file_path)
     if not file_path.exists():
         raise FileNotFoundError(f"Excel文件不存在：{str(file_path.absolute())}")
@@ -117,9 +116,23 @@ def get_random_resources(file_path, col_type, col_name, col_link, count):
     if len(df_clean) == 0:
         raise Exception("Excel中没有有效的资源数据")
 
+    # 根据标签筛选
+    if specified_tags:
+        if exclude_tags:
+            # 排除指定标签
+            df_filtered = df_clean[~df_clean["type"].isin(specified_tags)]
+        else:
+            # 只包含指定标签
+            df_filtered = df_clean[df_clean["type"].isin(specified_tags)]
+
+        if len(df_filtered) == 0:
+            raise Exception(f"没有找到{'非' if exclude_tags else ''}指定标签的资源数据")
+    else:
+        df_filtered = df_clean
+
     # 随机选取指定数量的资源
-    sample_count = min(count, len(df_clean))
-    df_sample = df_clean.sample(n=sample_count, random_state=random.randint(0, 10000))
+    sample_count = min(count, len(df_filtered))
+    df_sample = df_filtered.sample(n=sample_count, random_state=random.randint(0, 10000))
 
     return [(row["name"], row["link"], row["type"]) for _, row in df_sample.iterrows()]
 
@@ -203,31 +216,73 @@ if __name__ == "__main__":
             raise Exception("❌ 未配置企业微信Webhook（请检查GitHub Secrets）")
 
         if NO_fenlei_MODE:
-            # 随机模式：直接从Excel中随机选取资源
-            print(f"🎲 随机模式：从Excel中随机选取 {RANDOM_COUNT} 个资源进行推送...")
-            random_resources = get_random_resources(
-                EXCEL_FILE_PATH,
-                TARGET_COL_TYPE,
-                TARGET_COL_NAME,
-                TARGET_COL_LINK,
-                RANDOM_COUNT
-            )
-
-            if not random_resources:
-                print("❌ 没有有效的资源数据，终止推送")
-                exit(0)
-
-            print(f"✅ 成功选取 {len(random_resources)} 个资源")
-            msg_content = format_random_resources_message(random_resources)
-            print(f"📝 待推送内容：\n{msg_content}")
-
+            # 第一次推送：从指定标签中选取资源
+            print(f"🎲 第一次推送：从指定标签{SPECIFIED_TAGS}中随机选取 {RANDOM_COUNT} 个资源...")
             try:
-                send_to_wechat_bot(WECHAT_WEBHOOK, msg_content, "随机资源")
+                first_batch_resources = get_random_resources_by_tags(
+                    EXCEL_FILE_PATH,
+                    TARGET_COL_TYPE,
+                    TARGET_COL_NAME,
+                    TARGET_COL_LINK,
+                    RANDOM_COUNT,
+                    specified_tags=SPECIFIED_TAGS,
+                    exclude_tags=False
+                )
+
+                if not first_batch_resources:
+                    print("❌ 指定标签中没有有效的资源数据")
+                else:
+                    print(f"✅ 成功从指定标签中选取 {len(first_batch_resources)} 个资源")
+                    msg_content = format_random_resources_message(first_batch_resources)
+                    print(f"📝 待推送内容：\n{msg_content}")
+
+                    try:
+                        send_to_wechat_bot(WECHAT_WEBHOOK, msg_content, "指定标签资源")
+                        print("✅ 第一次推送完成")
+                    except Exception as e:
+                        print(f"❌ 第一次推送失败：{str(e)}")
+                        exit(1)
+
+                    # 等待2秒间隔
+                    print("⏳ 等待2秒后进行第二次推送...")
+                    time.sleep(2)
+
             except Exception as e:
-                print(f"❌ 推送失败：{str(e)}")
+                print(f"❌ 第一次推送失败：{str(e)}")
                 exit(1)
 
-            print("\n🎉 随机资源推送完成！")
+            # 第二次推送：从非指定标签中选取资源
+            print(f"🎲 第二次推送：从非指定标签中随机选取 {RANDOM_COUNT} 个资源...")
+            try:
+                second_batch_resources = get_random_resources_by_tags(
+                    EXCEL_FILE_PATH,
+                    TARGET_COL_TYPE,
+                    TARGET_COL_NAME,
+                    TARGET_COL_LINK,
+                    RANDOM_COUNT,
+                    specified_tags=SPECIFIED_TAGS,
+                    exclude_tags=True
+                )
+
+                if not second_batch_resources:
+                    print("❌ 非指定标签中没有有效的资源数据")
+                    exit(0)
+
+                print(f"✅ 成功从非指定标签中选取 {len(second_batch_resources)} 个资源")
+                msg_content = format_random_resources_message(second_batch_resources)
+                print(f"📝 待推送内容：\n{msg_content}")
+
+                try:
+                    send_to_wechat_bot(WECHAT_WEBHOOK, msg_content, "非指定标签资源")
+                except Exception as e:
+                    print(f"❌ 第二次推送失败：{str(e)}")
+                    exit(1)
+
+            except Exception as e:
+                print(f"❌ 第二次推送失败：{str(e)}")
+                exit(1)
+
+            print("\n🎉 两次资源推送完成！")
         else:
             # 分类模式：按资源类型分类推送
             print("📌 分类模式：开始读取Excel文件...")
