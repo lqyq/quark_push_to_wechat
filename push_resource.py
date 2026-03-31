@@ -152,7 +152,7 @@ def format_single_type_message(res_type, res_list, max_num=5):
     # 构造单类别消息（删除了原第一行"📚 共享资源推送"）
     msg_parts = [
         f"{res_type}共{len(res_list)}条，随机抽取{sample_count}条）：\n{res_str}\n",
-        "💡 需要其他资源可联系我，更多资料可在该网站搜索：https://dcn8qexvg13r.feishu.cn/wiki/OAS1wpySSiedCDkgnjycCza8nFf?table=tblgsMxc3clOlIc5&view=vewQ1AKJ0D"
+        "💡 🌈点⬆⬆⬆🔗，左下角保存网盘，下载夸克App，(手机端)赠送1T空间‼资源持续更新"
     ]
     final_msg = "\n".join(msg_parts)
     return final_msg[:4000]  # 预留空间，避免超企业微信字符限制
@@ -169,7 +169,7 @@ def format_random_resources_message(resources):
     # 构造消息
     msg_parts = [
         f"🎲 随机推送 {len(resources)} 个资源：\n{res_str}\n",
-        "💡 需要其他资源可联系我，更多资料可在该网站搜索：https://dcn8qexvg13r.feishu.cn/wiki/OAS1wpySSiedCDkgnjycCza8nFf?table=tblgsMxc3clOlIc5&view=vewQ1AKJ0D"
+        "💡 🌈点⬆⬆⬆🔗，左下角保存网盘，下载夸克App，(手机端)赠送1T空间‼资源持续更新"
     ]
     final_msg = "\n".join(msg_parts)
     return final_msg[:4000]  # 预留空间，避免超企业微信字符限制
