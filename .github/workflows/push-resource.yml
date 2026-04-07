@@ -42,7 +42,7 @@ jobs:
           SEND_LINKS_PER_TYPE: 5
           SEND_INTERVAL: 2
           NO_fenlei_MODE: "true" 
-          RANDOM_COUNT: 10 
+          RANDOM_COUNT: ${{ secrets.RANDOM_PUSH_COUNT }}
 
           #RANDOM_SEED: 42
         run: python push_resource.py
