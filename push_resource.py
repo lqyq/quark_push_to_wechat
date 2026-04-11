@@ -102,7 +102,8 @@ def format_random_resources_message(resources):
 
     # 格式化随机选取的内容
     res_str = "\n".join([
-        f"📚{i + 1}. {name}（标签：{tag}）：\n{link}" 
+        #f"📚{i + 1}. {name}（标签：{tag}）：\n{link}" 
+        f"📚{i + 1}. {name}：\n{link}" 
         for i, (name, link, tag) in enumerate(resources)
     ])
 
